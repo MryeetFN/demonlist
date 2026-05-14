@@ -207,7 +207,7 @@
     <div class="site-title">DEMON LIST</div>
     <div class="site-sub">// OFFICIAL RANKING — HARDEST DEMONS //</div>
     <div class="header-actions">
-      <button class="btn" onclick="exportHTML()">⬇ SAVE &amp; DOWNLOAD</button>
+      
       <button class="btn btn-primary" onclick="openAdminLogin()">⚙ ADMIN PANEL</button>
     </div>
   </header>
@@ -540,6 +540,9 @@
       <button class="admin-close" onclick="closeAdmin()">✕</button>
     </div>
     <div class="admin-tabs">
+  <button class="admin-tab" onclick="switchAdminTab('players')">
+    PLAYERS
+  </button>
       <button class="admin-tab active" onclick="switchTab('demons')">💀 DEMONS</button>
       <button class="admin-tab" onclick="switchTab('records')">🏆 RECORDS</button>
     </div>
@@ -893,7 +896,7 @@ function getDefaultDemons() {
 }
 
 // ─── STATE ─────────────────────────────────────────
-let demons = [], records = {};
+let defaultDemons = [], records = {};
 let filterDiff = 'All', editingId = null, adminOpen = false;
 let recDemonId = null, editingRecId = null;
 let pendingDeleteType = 'demon', pendingDeleteDemonId = null, pendingDeleteRecInfo = null;
@@ -916,7 +919,8 @@ function insertAtRank(demon, rank) {
 function removeDemon(id) { demons = demons.filter(d=>d.id!==id); reindex(); }
 function updateDemon(id, name, diff, newRank) {
   const idx = demons.findIndex(d=>d.id===id); if(idx===-1)return;
-  const demon = demons.splice(idx,1)[0]; reindex();
+  const demon = demons.splice(idx,1)[0];
+let demons = JSON.parse(localStorage.getItem("demons")) || defaultDemons; reindex();
   demon.name=name; demon.difficulty=diff; insertAtRank(demon, newRank);
 }
 
@@ -1211,6 +1215,11 @@ let toastTimer;
 function showToast(msg,err=false) { const el=document.getElementById('toast'); el.textContent=msg; el.className='show'+(err?' err':''); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.className='',2600); }
 
 // ─── EXPORT ────────────────────────────────────────
+
+function saveData() {
+  localStorage.setItem("demons", JSON.stringify(demons));
+}
+
 function exportHTML() {
   let html = document.documentElement.outerHTML;
   // Safe replacement: swap out ONLY the array literal inside getDefaultDemons
@@ -1232,6 +1241,81 @@ function exportHTML() {
   await saveDemons(demons);
   renderAll();
 })();
+
+let registeredPlayers = JSON.parse(localStorage.getItem("registeredPlayers")) || [];
+
+function savePlayers() {
+  localStorage.setItem(
+    "registeredPlayers",
+    JSON.stringify(registeredPlayers)
+  );
+}
+
+function renderPlayers() {
+  const container = document.getElementById("players-list");
+
+  if (!container) return;
+
+  if (registeredPlayers.length === 0) {
+    container.innerHTML = `
+      <div class="no-records">
+        NO REGISTERED PLAYERS
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = registeredPlayers.map((player, index) => `
+    <div class="prog-row">
+      <div class="prog-name">${player}</div>
+
+      <button
+        class="btn btn-danger btn-sm"
+        onclick="removePlayer(${index})"
+      >
+        REMOVE
+      </button>
+    </div>
+  `).join("");
+}
+
+function addPlayer() {
+  const input = document.getElementById("player-name-input");
+
+  if (!input) return;
+
+  const name = input.value.trim();
+
+  if (!name) return;
+
+  if (registeredPlayers.includes(name)) {
+    showToast("PLAYER ALREADY EXISTS", true);
+    return;
+  }
+
+  registeredPlayers.push(name);
+
+  savePlayers();
+  renderPlayers();
+
+  input.value = "";
+
+  showToast("PLAYER REGISTERED");
+}
+
+function removePlayer(index) {
+  registeredPlayers.splice(index, 1);
+
+  savePlayers();
+  renderPlayers();
+
+  showToast("PLAYER REMOVED");
+}
+
+window.addEventListener("load", () => {
+  renderPlayers();
+});
+
 </script>
 
 
